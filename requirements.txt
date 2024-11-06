@@ -1,0 +1,5 @@
+Flask==2.2.3
+Flask-JWT-Extended==4.3.1
+pymongo==4.1.1
+python-dotenv==0.20.0
+werkzeug==2.2.3

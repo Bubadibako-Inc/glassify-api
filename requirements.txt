@@ -1,5 +1,5 @@
 Flask
 Flask-JWT-Extended
+flask-bcrypt
 pymongo
 python-dotenv
-werkzeug

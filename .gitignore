@@ -2,3 +2,4 @@
 .env
 .venv/
 app/__pycache__
+uploads/

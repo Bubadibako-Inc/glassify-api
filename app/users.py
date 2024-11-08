@@ -1,14 +1,27 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity 
 from flask_bcrypt import Bcrypt
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 from functools import wraps
 from dotenv import load_dotenv
+from PIL import Image
+import io
+import base64
 import os
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Directory to store images
+UPLOAD_FOLDER = "uploads/"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Allowed extensions for uploading image
+ALLOWED_EXTENSIONS = {"jpeg", "webp", "png"}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Initialize MongoDB client
 client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
@@ -97,6 +110,22 @@ def login():
     else:
         return jsonify({"error": "Invalid email or password"}), 401
 
+# Add token to blacklist when user logout
+@jwt.token_in_blocklist_loader
+def check_if_token_in_blacklist(jwt_payload):
+    jti = jwt_payload["jti"]
+
+    return jti in blacklist
+
+# Logout
+@users_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    jti = get_jwt_identity()
+    blacklist.add(jti)
+    
+    return jsonify({"message": "Successfully logged out"}), 200
+
 # Get current user
 @users_bp.route("/profile", methods=["GET"])
 @jwt_required()
@@ -165,18 +194,63 @@ def delete_user(id):
     else:
         return jsonify({"error": "User not found"}), 404
 
-# Add token to blacklist when user logout
-@jwt.token_in_blocklist_loader
-def check_if_token_in_blacklist(jwt_payload):
-    jti = jwt_payload["jti"]
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    return jti in blacklist
-
-# Logout
-@users_bp.route("/logout", methods=["POST"])
-@jwt_required()
-def logout():
-    jti = get_jwt_identity()
-    blacklist.add(jti)
+# Upload face shape recognition image
+@users_bp.route("/upload_image", methods=["POST"])
+@jwt_required(optional=True)
+def upload_image():
+    _id = get_jwt_identity()
+    user = None
     
-    return jsonify({"message": "Successfully logged out"}), 200
+    if _id:
+        user = users.find_one({"_id": ObjectId(_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+    if 'face_shape' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    image_file = request.files['face_shape']
+
+    if not image_file.mimetype.startswith('image/'):
+        return jsonify({"error": "File is not an image."}), 400
+
+    image_format = image_file.filename.split('.')[-1].lower()
+    image = Image.open(image_file)
+
+    if image_format not in ALLOWED_EXTENSIONS:
+        image = image.convert("RGB")
+        image_format = "png"
+
+    if user:
+        filename = f"{user['name']}.{image_format}"
+    else:
+        filename = "temporary.png"
+
+    image_path = os.path.join(UPLOAD_FOLDER, filename)
+    image.save(image_path, format=image_format.upper())
+
+    if user:
+        with open(image_path, "rb") as img_file:
+            encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
+            users.update_one(
+                {"_id": ObjectId(_id)},
+                {"$set": {"face_shape": encoded_image}}
+            )
+
+    return jsonify({"message": "Image uploaded successfully"}), 200
+
+# Get the user's face shape recognition image
+@users_bp.route("/get_image", methods=["GET"])
+@jwt_required()
+def get_image():
+    _id = get_jwt_identity()
+    user = users.find_one({"_id": ObjectId(_id)})
+
+    if not user or "face_shape" not in user:
+        return jsonify({"error": "Image not found"}), 404
+
+    image_data = base64.b64decode(user["face_shape"])
+    return send_file(io.BytesIO(image_data), mimetype='image/png')

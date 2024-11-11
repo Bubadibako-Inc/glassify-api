@@ -24,7 +24,7 @@ print(secrets.token_urlsafe(32))
 ```
 Copy the generated key and paste it as the value for `JWT_SECRET_KEY`
 
-Last, run the `run.py`:
+## Last, run the `run.py`:
 ```
 python run.py
 ```

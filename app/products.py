@@ -11,10 +11,8 @@ import datetime
 load_dotenv()
 
 # Initialize MongoDB client
-mongo_uri = os.getenv("MONGO_URI")
-
-client = MongoClient(mongo_uri)
-db = client.glassify
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client[os.getenv("MONGO_DB_NAME")]
 users = db["users"]
 products = db["products"]
 
@@ -68,6 +66,7 @@ def create_product():
     stock = data["stock"]
     face_shape = data["face_shape"]
     images = data["images"]
+    reviews = data.get("review", [])
     rating = 0
 
     product_id = products.insert_one({
@@ -81,6 +80,7 @@ def create_product():
         "stock": stock,
         "face_shape": face_shape,
         "images": images,
+        "reviews": reviews,
         "rating": rating
     }).inserted_id
 
@@ -136,7 +136,7 @@ def add_review(id):
     
     products.update_one(
         {"_id": ObjectId(id)},
-        {"$push": {"review": review}}
+        {"$push": {"reviews": review}}
     )
 
     reviews = product.get("review", []) + [review]

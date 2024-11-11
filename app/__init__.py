@@ -15,11 +15,13 @@ bcrypt = Bcrypt()
 def create_app():
     app = Flask(__name__)
 
-    # Load configuration from .env or any other config file
+    # Load JWT secret key from .env file
     jwt_secret_key = os.getenv("JWT_SECRET_KEY")
-    if not jwt_secret_key:
-        raise EnvironmentError("JWT_SECRET_KEY environment variable not set.")
 
+    if not jwt_secret_key:
+        raise EnvironmentError("JWT_SECRET_KEY environment variable not set correctly in .env file.")
+
+    # Apply configurations
     app.config['JWT_SECRET_KEY'] = jwt_secret_key
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
 
@@ -31,9 +33,13 @@ def create_app():
     from .users import users_bp
     from .products import products_bp
     from .transactions import transactions_bp
+    from .wishlist import wishlists_bp
+    from .cart import carts_bp
 
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(products_bp, url_prefix='/api/products')
     app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
+    app.register_blueprint(wishlists_bp, url_prefix='/api/wishlists')
+    app.register_blueprint(carts_bp, url_prefix='/api/carts')
 
     return app

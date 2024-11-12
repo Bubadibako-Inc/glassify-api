@@ -13,11 +13,6 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize MongoDB client
-client = MongoClient(os.getenv("MONGO_URI"))
-db = client[os.getenv("MONGO_DB_NAME")]
-users = db["users"]
-
 # Directory to store images
 UPLOAD_FOLDER = "uploads/"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -27,6 +22,11 @@ ALLOWED_EXTENSIONS = {"jpeg", "webp", "png"}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Initialize MongoDB client
+client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+db = client.glassify
+users = db["users"]
 
 # Create a Blueprint for users
 users_bp = Blueprint('users', __name__)
@@ -76,10 +76,6 @@ def create_user():
     email = data["email"]
     role = data.get("role", "user")
     password = bcrypt.generate_password_hash(data["password"]).decode('utf-8')
-    face_photo = data.get("face_photo", "-")
-    photo_profile = data.get("photo_profile", "-")
-    wishlist = data.get("wishlist", [])
-    cart = data.get("cart", [])
 
     if users.find_one({"email": email}):
         return jsonify({"message": "Email already registered"}), 409
@@ -88,11 +84,7 @@ def create_user():
         "name": name,
         "email": email,
         "role": role,
-        "password": password,
-        "face_photo": face_photo,
-        "photo_profile": photo_profile,
-        "wishlist": wishlist,
-        "cart": cart
+        "password": password
     }).inserted_id
 
     return jsonify({"message": "User created", "_id": str(user_id)}), 201
@@ -176,8 +168,6 @@ def update_user(id):
         update_fields["email"] = data["email"]
     if "password" in data:
         update_fields["password"] = bcrypt.generate_password_hash(data["password"]).decode('utf-8')
-    if "photo_profile" in data:
-        update_fields["photo_profile"] = data["photo_profile"]            
 
     if update_fields:
         result = users.update_one(
@@ -218,10 +208,10 @@ def upload_image():
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-    if 'face_photo' not in request.files:
+    if 'face_shape' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
 
-    image_file = request.files['face_photo']
+    image_file = request.files['face_shape']
 
     if not image_file.mimetype.startswith('image/'):
         return jsonify({"error": "File is not an image."}), 400
@@ -246,7 +236,7 @@ def upload_image():
             encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
             users.update_one(
                 {"_id": ObjectId(_id)},
-                {"$set": {"face_photo": encoded_image}}
+                {"$set": {"face_shape": encoded_image}}
             )
 
     return jsonify({"message": "Image uploaded successfully"}), 200
@@ -258,8 +248,8 @@ def get_image():
     _id = get_jwt_identity()
     user = users.find_one({"_id": ObjectId(_id)})
 
-    if not user or "face_photo" not in user:
+    if not user or "face_shape" not in user:
         return jsonify({"error": "Image not found"}), 404
 
-    image_data = base64.b64decode(user["face_photo"])
+    image_data = base64.b64decode(user["face_shape"])
     return send_file(io.BytesIO(image_data), mimetype='image/png')

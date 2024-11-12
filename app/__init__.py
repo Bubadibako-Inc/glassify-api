@@ -34,14 +34,14 @@ def create_app():
     from .products import products_bp
     from .transactions import transactions_bp
     from .reviews import reviews_bp
-    from .wishlist import wishlists_bp
+    from .wishlist import wishlist_bp
     from .cart import carts_bp
 
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(products_bp, url_prefix='/api/products')
     app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
     app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
-    app.register_blueprint(wishlists_bp, url_prefix='/api/wishlists')
-    app.register_blueprint(carts_bp, url_prefix='/api/carts')
+    app.register_blueprint(wishlist_bp, url_prefix='/api/wishlist')
+    app.register_blueprint(carts_bp, url_prefix='/api/cart')
 
     return app

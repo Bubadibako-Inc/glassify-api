@@ -105,8 +105,7 @@ def login():
     if user and bcrypt.check_password_hash(user["password"],password):
         access_token = create_access_token(identity=str(user["_id"]))
 
-        return jsonify({
-            "message": "Login successful", "access_token": access_token, "user": format_user(user)}), 200
+        return jsonify({"message": "Login successful", "access_token": access_token}), 200
     else:
         return jsonify({"error": "Invalid email or password"}), 401
 

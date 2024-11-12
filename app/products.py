@@ -11,10 +11,8 @@ import datetime
 load_dotenv()
 
 # Initialize MongoDB client
-mongo_uri = os.getenv("MONGO_URI")
-
-client = MongoClient(mongo_uri)
-db = client.glassify
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client[os.getenv("MONGO_DB_NAME")]
 users = db["users"]
 products = db["products"]
 

@@ -26,7 +26,6 @@ def format_user(user):
 
     return user
 
-
 # Add wishlist to user
 @wishlist_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -47,7 +46,7 @@ def add_wishlist():
     if not user:
         return jsonify({"error": "User not found."}), 404
 
-    if any(item["product_id"] == product_id for item in user.get("wishlist", [])):
+    if any(item["product_id"] == ObjectId(product_id) for item in user.get("wishlist", [])):
         return jsonify({"message": "Product already in wishlist."}), 200
 
     try:
@@ -72,3 +71,29 @@ def get_user_wishlist():
     user_data = format_user(user)
     
     return jsonify(user_data["wishlist"]), 200
+
+# Remove product from wishlist
+@wishlist_bp.route("/<product_id>", methods=["DELETE"])
+@jwt_required()
+def remove_from_wishlist(product_id):
+    user_id = get_jwt_identity()
+
+    user = users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+
+    wishlist = user.get("wishlist", [])
+    product_in_wishlist = next((item for item in wishlist if item["product_id"] == ObjectId(product_id)), None)
+
+    if not product_in_wishlist:
+        return jsonify({"error": "Product not found in wishlist."}), 404
+
+    try:
+        users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$pull": {"wishlist": {"product_id": ObjectId(product_id)}}}
+        )
+        return jsonify({"message": "Product removed from wishlist."}), 200
+    except errors.PyMongoError as e:
+        return jsonify({"error": f"An error occurred while removing from wishlist: {str(e)}"}), 500
+    

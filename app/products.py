@@ -105,53 +105,6 @@ def get_user(id):
 
     except errors.InvalidId:
         return jsonify({"error": "Invalid ID format"}), 400
-    
-# Add review by product ID
-@products_bp.route("/review/<id>", methods=["POST"])
-@jwt_required()
-def add_review(id):
-    data = request.get_json()
-    
-    if not data or not all(field in data for field in ("rating", "comment")):
-        return jsonify({"error": "Missing fields"}), 400
-    
-    user_id = get_jwt_identity()
-    rating = data["rating"]
-    comment = data["comment"]
-
-    # Validate rating value
-    if not (1 <= rating <= 5):
-        return jsonify({"error": "Rating must be between 1 and 5"}), 400
-    
-    review = {
-        "user_id": ObjectId(user_id),
-        "rating": rating,
-        "comment": comment,
-        "date": datetime.datetime.now().isoformat()
-    }
-
-    product = products.find_one({"_id": ObjectId(id)})
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-    
-    products.update_one(
-        {"_id": ObjectId(id)},
-        {"$push": {"reviews": review}}
-    )
-
-    reviews = product.get("review", []) + [review]
-    if len(reviews) == 1:
-        total_rating = data["rating"]
-    else:
-        total_rating = round(sum(r["rating"] for r in reviews) / len(reviews), 1)
-
-    products.update_one(
-        {"_id": ObjectId(id)},
-        {"$set": {"rating": total_rating}}
-    )
-
-    return jsonify({"message": "Review added successfully"}), 201
-
 
 # Update product (only admin)
 @products_bp.route("/<id>", methods=["PUT"])

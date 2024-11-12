@@ -95,7 +95,11 @@ def create_transaction():
 
         products.update_one(
             {"_id": ObjectId(product_id)},
-            {"$inc": {"stock": -item["quantity"]}}
+            {"$inc": {
+                    "stock": -item["quantity"],
+                    "sold": item["quantity"]
+                }
+            }
         )
 
     transaction_id = transactions.insert_one({

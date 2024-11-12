@@ -16,7 +16,7 @@ users = db["users"]
 products = db["products"]
 
 # Create a Blueprint for wishlist
-wishlists_bp = Blueprint('wishlists', __name__)
+wishlist_bp = Blueprint('wishlists', __name__)
 
 def format_user(user):
     user["_id"] = str(user["_id"])
@@ -26,3 +26,49 @@ def format_user(user):
 
     return user
 
+
+# Add wishlist to user
+@wishlist_bp.route("/", methods=["POST"])
+@jwt_required()
+def add_wishlist():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if "product_id" not in data:
+        return jsonify({"error": "'product_id' field is required."}), 400
+
+    product_id = data["product_id"]
+
+    product = products.find_one({"_id": ObjectId(product_id)})
+    if not product:
+        return jsonify({"error": "Product not found."}), 404
+
+    user = users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+
+    if any(item["product_id"] == product_id for item in user.get("wishlist", [])):
+        return jsonify({"message": "Product already in wishlist."}), 200
+
+    try:
+        users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$push": {"wishlist": {"product_id": ObjectId(product_id)}}}
+        )
+        return jsonify({"message": "Product added to wishlist."}), 201
+    except errors.PyMongoError as e:
+        return jsonify({"error": f"An error occurred while adding to wishlist: {str(e)}"}), 500
+
+# Get user wishlist
+@wishlist_bp.route("/", methods=["GET"])
+@jwt_required()
+def get_user_wishlist():
+    user_id = get_jwt_identity()
+    
+    user = users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    
+    user_data = format_user(user)
+    
+    return jsonify(user_data["wishlist"]), 200

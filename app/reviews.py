@@ -74,6 +74,7 @@ def add_review(id):
 
     return jsonify({"message": "Review added successfully"}), 201
 
+# Get all reviews from users by user ID
 @reviews_bp.route("/user", methods=["GET"])
 @jwt_required()
 def get_user_review():
@@ -84,8 +85,8 @@ def get_user_review():
     
     user_reviews = []
     products_with_reviews = products.find(
-        {"review.user_id": ObjectId(user_id)},
-        {"review": 1, "name": 1}
+        {"reviews.user_id": ObjectId(user_id)},
+        {"reviews": 1, "name": 1}
     )
 
     for product in products_with_reviews:
@@ -97,7 +98,7 @@ def get_user_review():
                 "comment": review["comment"],
                 "date": review["date"]
             }
-            for review in product["review"]
+            for review in product["reviews"]
             if review["user_id"] == ObjectId(user_id)
         ]
         user_reviews.extend(product_reviews)

@@ -2,4 +2,5 @@ Flask
 Flask-JWT-Extended
 flask-bcrypt
 pymongo
+faker
 python-dotenv

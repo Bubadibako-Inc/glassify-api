@@ -24,8 +24,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Initialize MongoDB client
-client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
-db = client.glassify
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client[os.getenv("MONGO_DB_NAME")]
 users = db["users"]
 
 # Create a Blueprint for users

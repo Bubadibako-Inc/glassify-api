@@ -41,7 +41,6 @@ def add_review(id):
     rating = data["rating"]
     comment = data["comment"]
 
-    # Validate rating value
     if not (1 <= rating <= 5):
         return jsonify({"error": "Rating must be between 1 and 5"}), 400
     
@@ -62,10 +61,7 @@ def add_review(id):
     )
 
     reviews = product.get("review", []) + [review]
-    if len(reviews) == 1:
-        total_rating = data["rating"]
-    else:
-        total_rating = round(sum(r["rating"] for r in reviews) / len(reviews), 1)
+    total_rating = round(sum(r["rating"] for r in reviews) / len(reviews), 1)
 
     products.update_one(
         {"_id": ObjectId(id)},

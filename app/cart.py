@@ -26,21 +26,31 @@ def format_user(user):
 
     return user
 
-# Add wishlist to user
+# Add cart to user
 @cart_bp.route("/", methods=["POST"])
 @jwt_required()
 def add_to_cart():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    if "product_id" not in data:
-        return jsonify({"error": "'product_id' field is required."}), 400
+    if not data or not all(field in data for field in ("product_id", "color")):
+        return jsonify({"error": "Missing fields"}), 400
 
     product_id = data["product_id"]
+    color = data["color"]
+
+    try:
+        product = products.find_one({"_id": ObjectId(product_id)})
+    except errors.InvalidId:
+        return jsonify({"error": "Invalid 'product_id' format."}), 400
 
     product = products.find_one({"_id": ObjectId(product_id)})
     if not product:
         return jsonify({"error": "Product not found."}), 404
+    
+    colors = product.get("color", [])
+    if color not in colors:
+        return jsonify({"error": f"Invalid color. Available colors: {', '.join(colors)}"}), 400
 
     user = users.find_one({"_id": ObjectId(user_id)})
     if not user:
@@ -51,12 +61,12 @@ def add_to_cart():
         return jsonify({"error": "'quantity' must be a positive integer."}), 400
 
     cart = user.get("cart", [])
-    existing_item = next((item for item in cart if item["product_id"] == ObjectId(product_id)), None)
+    existing_item = next((item for item in cart if item["product_id"] == ObjectId(product_id) and item["color"] == color), None)
 
     if existing_item:
         try:
             users.update_one(
-                {"_id": ObjectId(user_id), "cart.product_id": ObjectId(product_id)},
+                {"_id": ObjectId(user_id), "cart.product_id": ObjectId(product_id), "cart.color": color},
                 {"$inc": {"cart.$.quantity": quantity}}
             )
             return jsonify({"message": "Product quantity updated in cart."}), 200
@@ -66,7 +76,7 @@ def add_to_cart():
         try:
             users.update_one(
                 {"_id": ObjectId(user_id)},
-                {"$push": {"cart": {"product_id": ObjectId(product_id), "quantity": quantity}}}
+                {"$push": {"cart": {"product_id": ObjectId(product_id), "color": color, "quantity": quantity}}}
             )
             return jsonify({"message": "Product added to cart."}), 201
         except errors.PyMongoError as e:

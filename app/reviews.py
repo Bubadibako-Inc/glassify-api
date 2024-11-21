@@ -23,7 +23,7 @@ reviews_bp = Blueprint('reviews', __name__)
 def format_product(product):
     product["_id"] = str(product["_id"])
 
-    for review in product.get("review", []):
+    for review in product.get("reviews", []):
         review["user_id"] = str(review["user_id"])
 
     return product
@@ -51,16 +51,21 @@ def add_review(id):
         "date": datetime.datetime.now().isoformat()
     }
 
-    product = products.find_one({"_id": ObjectId(id)})
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
+    try:
+        product = products.find_one({"_id": ObjectId(id)})
+        if not product:
+            return jsonify({"error": "Product not found"}), 404
+        
+        products.update_one(
+            {"_id": ObjectId(id)},
+            {"$push": {"reviews": review}}
+        )
     
-    products.update_one(
-        {"_id": ObjectId(id)},
-        {"$push": {"reviews": review}}
-    )
+    except errors.InvalidId:
+        return jsonify({"error": "Invalid ID format"}), 400
+    
 
-    reviews = product.get("review", []) + [review]
+    reviews = product.get("reviews", []) + [review]
     total_rating = round(sum(r["rating"] for r in reviews) / len(reviews), 1)
 
     products.update_one(
@@ -69,6 +74,54 @@ def add_review(id):
     )
 
     return jsonify({"message": "Review added successfully"}), 201
+
+# Get all reviews from product
+@reviews_bp.route("/product/<id>", methods=["GET"])
+def get_all_product_reviews(id):
+    product = products.find_one(
+        {"_id": ObjectId(id)},
+        {"reviews": 1}
+    )
+
+    if product:
+        product["reviews"] = sorted(
+            product.get("reviews", []),
+            key=lambda review: review.get("date", ""),
+            reverse=True
+        )
+        
+        return jsonify(format_product(product)), 200
+    else:
+        return jsonify({"error": "Product not found"}), 404
+    
+@reviews_bp.route("product/<id>/rating", methods=["GET"])
+def get_reviews_by_rating(id):
+    try:
+        rating = request.args.get("rating")
+        if not rating:
+            return jsonify({"error": "Please provide ratings as query parameters, e.g., ?ratings=5,2"}), 400
+        
+        rating_values = [int(r) for r in rating.split(",")]
+
+        product = products.find_one(
+            {"_id": ObjectId(id)},
+            {"reviews": 1}
+        )
+
+        if not product:
+            return jsonify({"error": "Product not found"}), 404
+        
+        product["reviews"] = [
+            review for review in product.get("reviews", [])
+            if review.get("rating") in rating_values
+        ]
+
+        formatted_product = format_product(product)
+
+        return jsonify(formatted_product["reviews"]), 200
+    
+    except ValueError:
+        return jsonify({"error": "Ratings must be integers"}), 400
 
 # Get all reviews from users by user ID
 @reviews_bp.route("/user", methods=["GET"])

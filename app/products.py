@@ -41,12 +41,12 @@ def role_required(role):
 def format_product(product):
     product["_id"] = str(product["_id"])
 
-    for review in product.get("review", []):
+    for review in product.get("reviews", []):
         review["user_id"] = str(review["user_id"])
 
     return product
 
-# Create new user (only admin)
+# Create new product (only admin)
 @products_bp.route("/", methods=["POST"])
 @role_required("admin")
 def create_product():
@@ -65,7 +65,7 @@ def create_product():
     stock = data["stock"]
     face_shape = data["face_shape"]
     images = data["images"]
-    reviews = data.get("review", [])
+    reviews = data.get("reviews", [])
     rating = 0
 
     product_id = products.insert_one({
@@ -91,6 +91,35 @@ def get_all_produtcs():
     products_list = [format_product(product) for product in products.find()]
 
     return jsonify(products_list), 200
+
+# Search products by name or shape and sort it
+@products_bp.route("/search", methods=["GET"])
+def search_products():
+    keyword = request.args.get("keyword", "").strip()
+    sort  = request.args.get("sort", "").strip().lower()
+
+    if not keyword:
+        return jsonify({"error": "Keyword is required"}), 400
+
+    query = {
+        "$or": [
+            {"name": {"$regex": keyword, "$options": "i"}},
+            {"shape": {"$regex": keyword, "$options": "i"}}
+        ]
+    }
+
+    sort_order = 1 if sort == "asc" else -1 if sort == "desc" else None
+
+    cursor = products.find(query)
+    if sort_order is not None:
+        cursor = cursor.sort("price", sort_order)
+
+    matching_products = [format_product(product) for product in cursor]
+
+    if matching_products:
+        return jsonify(matching_products), 200
+    else:
+        return jsonify({"message": "No products found matching the keyword"}), 404
 
 # Get product by ID
 @products_bp.route("/<id>", methods=["GET"])

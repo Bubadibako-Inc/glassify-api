@@ -62,6 +62,12 @@ def format_user(user):
     user["_id"] = str(user["_id"])
     user.pop("password", None)
 
+    for product in user.get("wishlist", []):
+        product["product_id"] = str(product["product_id"])
+
+    for product in user.get("cart", []):
+        product["product_id"] = str(product["product_id"])
+
     return user
 
 # Create new user

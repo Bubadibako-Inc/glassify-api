@@ -1,6 +1,12 @@
+Faker
 Flask
+Flask-Bcrypt
 Flask-JWT-Extended
-flask-bcrypt
-pymongo
-faker
+dlib
+numpy
+opencv-python
+pandas
+pillow
 python-dotenv
+pymongo
+shutil

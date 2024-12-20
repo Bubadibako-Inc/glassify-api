@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
-from functools import wraps
 from dotenv import load_dotenv
 import os
 

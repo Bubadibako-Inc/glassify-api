@@ -1,5 +1,6 @@
 .DS_Store
 .env
 .venv/
+models/
 app/__pycache__
 uploads/

@@ -2,11 +2,11 @@
 
 ## To install requirements, run in terminal:
 ```
-pip install -r requeriments.txt
+pip install -r requirements.txt
 ```
 or
 ```
-pip3 install -r requeriments.txt
+pip3 install -r requirements.txt
 ```
 
 ## To generate a secure JWT secret key, run in terminal:

@@ -30,18 +30,22 @@ def create_app():
     bcrypt.init_app(app)
 
     # Register Blueprints
-    from .users import users_bp
-    from .products import products_bp
-    from .transactions import transactions_bp
-    from .reviews import reviews_bp
-    from .wishlist import wishlist_bp
+    from .auth import auth_bp
     from .cart import cart_bp
+    from .model import model_bp
+    from .product import products_bp
+    from .review import reviews_bp
+    from .transaction import transactions_bp
+    from .user import user_bp
+    from .wishlist import wishlist_bp
 
-    app.register_blueprint(users_bp, url_prefix='/api/users')
-    app.register_blueprint(products_bp, url_prefix='/api/products')
-    app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
-    app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
-    app.register_blueprint(wishlist_bp, url_prefix='/api/wishlist')
-    app.register_blueprint(cart_bp, url_prefix='/api/cart')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(cart_bp, url_prefix='/cart')
+    app.register_blueprint(model_bp, url_prefix='/model')
+    app.register_blueprint(products_bp, url_prefix='/product')
+    app.register_blueprint(reviews_bp, url_prefix='/review')
+    app.register_blueprint(transactions_bp, url_prefix='/transaction')
+    app.register_blueprint(user_bp, url_prefix='/user')
+    app.register_blueprint(wishlist_bp, url_prefix='/wishlist')
 
     return app
